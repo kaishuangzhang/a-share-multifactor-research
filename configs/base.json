@@ -1,0 +1,49 @@
+{
+  "project": {
+    "name": "A-share cross-sectional factor research",
+    "version": "0.1.0"
+  },
+  "data": {
+    "raw_dir": "../data/raw",
+    "start_date": "2019-01-01",
+    "end_date": "2024-12-31",
+    "min_history_days": 60,
+    "min_adv_20d": 10000000.0
+  },
+  "labels": {
+    "horizon_days": 20
+  },
+  "splits": {
+    "train_start": "2019-01-01",
+    "train_end": "2021-12-31",
+    "validation_start": "2022-01-01",
+    "validation_end": "2022-12-31",
+    "test_start": "2023-01-01",
+    "test_end": "2024-12-31"
+  },
+  "portfolio": {
+    "top_n": 20,
+    "gross_exposure": 0.95,
+    "min_stocks": 10
+  },
+  "backtest": {
+    "initial_cash": 1000000.0,
+    "commission_rate": 0.0003,
+    "minimum_commission": 5.0,
+    "stamp_tax_rate": 0.0005,
+    "stamp_tax_legacy_rate": 0.001,
+    "stamp_tax_cut_date": "2023-08-28",
+    "slippage_rate": 0.001,
+    "lot_size": 100,
+    "max_adv_participation": 0.05
+  },
+  "model": {
+    "random_state": 42,
+    "max_iter": 200,
+    "learning_rate": 0.04,
+    "max_leaf_nodes": 15,
+    "min_samples_leaf": 100,
+    "l2_regularization": 2.0
+  }
+}
+
