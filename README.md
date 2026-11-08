@@ -57,6 +57,10 @@ python scripts/run_pipeline.py
 The pipeline reads raw parquet files from `../data/raw`. It does not use the
 old processed dataset.
 
+For a chapter-by-chapter beginner explanation of the data, factors, labels,
+model, portfolio, backtest, metrics, and limitations, read
+[docs/beginner_project_walkthrough.md](docs/beginner_project_walkthrough.md).
+
 ## Outputs
 
 - `reports/research_report.md`: concise research report and results.
