@@ -1,74 +1,60 @@
-# Resume and interview notes
+# 简历表述与面试说明
 
-These notes use only the reproducible artifacts in this repository. Keep the
-data limitation visible whenever quoting a performance number.
+本说明只使用项目中可复现的结果。引用任何收益数据时，都必须同时说明数据限制，不能
+把回测结果包装成已经验证的实盘能力。
 
-## Recommended resume bullets
+## 推荐写入简历的项目描述
 
-- Built a reproducible A-share cross-sectional research pipeline over 287
-  current sample constituents and 417,872 aligned stock-day records, including
-  data validation, six technical factors, cross-sectional normalization, and
-  monthly Top-20 portfolio construction.
-- Designed close-to-open signal timing with T+1 execution, a 20-trading-day
-  forward target, purged train-validation-test splits, and automated leakage
-  tests to prevent training labels from crossing validation or test periods.
-- Implemented a unified backtest with board-lot rounding, commissions,
-  date-dependent stamp tax, slippage, cash constraints, approximate price
-  limits, and a daily traded-amount cap; compared a factor baseline and a
-  gradient-boosting model against an equal-weight universe benchmark.
-- On the 2023-2024 holdout, the six-factor baseline had an annualized return of
-  31.3%, maximum drawdown of -10.8%, and 24.4% cumulative active return versus
-  the equal-weight sample universe after modeled costs.
-- Diagnosed that better validation Rank IC for the gradient-boosting model
-  (0.046 versus 0.015) did not translate into stronger holdout portfolio
-  returns, demonstrating the importance of evaluating portfolio-level,
-  cost-aware evidence rather than model metrics alone.
+- 构建可复现的A股横截面量化研究流程，覆盖287只当前样本股票和417,872条对齐后的
+  股票-交易日记录，完成数据校验、六个技术因子、横截面标准化和月度Top20组合构建。
+- 设计T日收盘生成信号、T+1日开盘执行的交易时序，构造未来20个交易日收益标签，
+  使用带Purge的训练、验证和测试切分，并通过自动化测试防止标签跨越验证期或测试期。
+- 实现统一回测引擎，处理100股交易单位、佣金、分阶段印花税、滑点、现金约束、
+  近似涨跌停和单日成交额上限；在等权股票池基准下比较简单因子基线与梯度提升模型。
+- 在2023至2024年样本外测试期，六因子基线在计入模型成本后实现31.3%的年化收益、
+  -10.8%的最大回撤，以及24.4%的累计主动收益。
+- 识别出梯度提升模型虽然取得了更高的验证期RankIC，约为0.046，而简单因子基线
+  约为0.015，但没有转化为更强的样本外组合收益，说明模型评价必须进一步考察
+  Top20组合、回撤和交易成本，而不能只看RankIC。
 
-## What not to claim
+## 简历中不应出现的表述
 
-- Do not call the result "CSI 300 alpha"; the benchmark is not the CSI 300
-  index and the universe is not historical index membership.
-- Do not call the strategy production ready; the data still contains
-  survivorship bias and lacks industry, ST, and exact exchange limit flags.
-- Do not say the machine-learning model beat the factor baseline. In the final
-  holdout, the baseline had the higher return and lower drawdown.
-- Do not reuse the old full-sample annualized return. This project's final
-  evidence is the 2023-2024 holdout.
+- 不能把结果称为“沪深300超额收益”，因为当前基准不是沪深300指数，股票池也不是
+  历史时点指数成分。
+- 不能把策略称为生产可用，因为数据仍存在幸存者偏差，并缺少行业、ST状态和交易所
+  精确涨跌停标志。
+- 不能说机器学习模型跑赢了简单因子基线。在最终样本外测试中，简单基线的收益更高、
+  回撤更低。
+- 不能继续使用旧项目的全样本年化收益。新项目最终的研究证据应来自2023至2024年
+  样本外测试。
 
-## Key interview talking points
+## 面试重点说明
 
-### Why T+1 execution matters
+### 为什么必须实行T+1执行
 
-The signal uses the T close, which is available only after the close. Trading
-at that same close would use information that could not have supported the
-order. The label therefore starts at the next open.
+信号使用T日收盘信息，而T日收盘价只有在收盘后才完全确定。如果按同一T日收盘价
+成交，就使用了当时无法支持下单的信息。因此未来收益标签从下一交易日开盘开始计算。
 
-### Why labels are purged
+### 为什么要剔除跨期标签
 
-A 20-day forward return on a late-December date includes January prices. The
-split logic removes any training or validation row whose `label_end_date`
-crosses into the next period.
+12月底某个日期计算的20日未来收益会使用次年1月的价格。切分逻辑会删除所有
+`label_end_date`进入下一时期的训练样本或验证样本，避免标签泄漏。
 
-### Why the simple baseline matters
+### 为什么简单基线很重要
 
-Machine-learning validation Rank IC was higher, but portfolio returns were
-lower. A credible research process reports both results. The model may be
-overfitting factor interactions that do not survive portfolio construction and
-costs.
+机器学习模型在验证期的RankIC更高，但组合收益和回撤更差。可信的研究流程必须同时
+报告这两个结果。模型可能在拟合训练期和验证期有效的因子交互关系，但这些关系没有
+在组合构建和交易成本之后继续成立。
 
-### Why turnover is high
+### 为什么换手率较高
 
-The portfolio rebalances monthly and can replace many Top-20 names. One-way
-annual turnover is above seven times, making transaction costs and capacity
-central rather than secondary considerations.
+组合按月调仓，Top20成分可能发生较大变化。当前年化单边换手率超过7倍，因此交易成本
+和策略容量是核心约束，而不是可以忽略的次要问题。
 
-## Highest-value next improvements
+## 最值得继续改进的方向
 
-1. Replace the current constituent file list with point-in-time index
-   membership and include delisted stocks.
-2. Add the actual CSI 300 index as the primary benchmark once its history is
-   available.
-3. Add industry and size neutralization.
-4. Run expanding-window walk-forward testing and a transaction-cost sensitivity
-   grid.
-5. Add a proper risk model and stability analysis across subperiods.
+1. 用历史时点指数成分股替换当前成分文件，并纳入已退市股票。
+2. 获得历史数据后，加入真实沪深300指数作为主要基准。
+3. 增加行业和市值中性化。
+4. 进行扩展窗口滚动训练和交易成本敏感性测试。
+5. 加入正式的风险模型，并检查不同子时期的稳定性。

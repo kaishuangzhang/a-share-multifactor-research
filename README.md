@@ -1,52 +1,49 @@
-# A-share cross-sectional factor research
+# A股横截面量化因子研究
 
-This project is a reproducible daily-data research pipeline for A-share
-cross-sectional stock selection. It is intentionally built around one clean
-research design rather than many incompatible backtests.
+这是一个可复现的A股日频横截面选股研究项目。项目刻意只保留一套清晰的研究设计，
+避免同时维护多套口径不一致的回测。
 
-## Research design
+## 研究设计
 
-- A signal is formed after the close on day `T`.
-- Orders execute at the opening price on the next trading day, `T+1`.
-- The prediction target is the 20-trading-day return from the `T+1` open.
-- Stocks are ranked cross-sectionally within the same trading day.
-- Portfolios hold the Top 20 names with equal weights and monthly rebalancing.
-- Training uses 2019-2021, validation uses 2022, and the final holdout is 2023-2024.
-- Training and validation labels are purged before the next period starts.
-- The backtest includes board-lot rounding, commissions, date-dependent stamp
-  tax, slippage, cash constraints, price-limit checks, and a traded-amount cap.
+- 在 `T` 日收盘后生成选股信号。
+- 在下一交易日 `T+1` 的开盘价执行交易。
+- 预测目标是从 `T+1` 日开盘开始计算的20个交易日收益。
+- 在同一天的全部可选股票中进行横截面排名。
+- 每月选取得分最高的20只股票，采用等权配置并每月调仓。
+- 使用2019至2021年数据训练，2022年验证，2023至2024年进行最终样本外测试。
+- 训练集和验证集会剔除未来标签跨越下一时期边界的样本。
+- 回测考虑了100股交易单位、佣金、不同历史阶段适用的印花税、滑点、现金约束、
+  近似涨跌停检查和单日成交额限制。
 
-The forward label is:
+未来收益标签的公式为：
 
 ```text
-future_return(T) = open(T+1+20) / open(T+1) - 1
+未来收益(T) = 开盘价(T+1+20) / 开盘价(T+1) - 1
 ```
 
-It deliberately excludes the return between the T close and the T+1 open
-because that return cannot be captured by a close-based signal.
+该公式刻意不使用T日收盘到T+1日开盘之间的收益，因为收盘后生成的信号无法成交到
+T日收盘价。
 
-## Factors
+## 因子说明
 
-All factors are oriented so that a larger value means a more favorable prior:
+项目中的因子已按“数值越大，初始判断越有利”的方向构造：
 
-| Factor | Definition | Intuition |
+| 因子 | 定义 | 直观含义 |
 |---|---|---|
-| `momentum_20d` | Past 20-day return | Medium-term price trend |
-| `momentum_60d` | Past 60-day return | Longer trend |
-| `reversal_5d` | Negative past 5-day return | Short-term oversold reversal |
-| `low_volatility_20d` | Negative 20-day return volatility | Low-volatility effect |
-| `low_turnover_20d` | Negative 20-day average turnover | Crowding and speculation |
-| `low_liquidity_20d` | Negative log average traded amount | Illiquidity premium |
+| `momentum_20d` | 过去20个交易日收益 | 中期价格趋势 |
+| `momentum_60d` | 过去60个交易日收益 | 较长周期趋势 |
+| `reversal_5d` | 过去5个交易日收益的相反数 | 短期超跌反弹 |
+| `low_volatility_20d` | 20日收益波动率的相反数 | 低波动效应 |
+| `low_turnover_20d` | 20日平均换手率的相反数 | 交易拥挤和投机情绪 |
+| `low_liquidity_20d` | 20日平均成交额对数的相反数 | 低流动性溢价 |
 
-Each raw factor is winsorized and standardized within the same-date
-cross-section. The simple baseline is the equal-weight average of these
-standardized factors. The machine-learning challenger is a scikit-learn
-histogram gradient-boosting regressor trained to predict cross-sectional
-relative-return ranks.
+每个原始因子都会在同一交易日的股票截面内做缩尾和标准化。简单基线取六个标准化
+因子的等权平均值。机器学习对照模型使用scikit-learn的直方图梯度提升回归器，
+预测股票未来收益的横截面相对排名。
 
-## Quick start
+## 快速开始
 
-From this directory:
+在本项目目录执行：
 
 ```powershell
 python -m pip install -r requirements.txt
@@ -54,55 +51,50 @@ python -m pytest -q
 python scripts/run_pipeline.py
 ```
 
-The pipeline reads raw parquet files from `../data/raw`. It does not use the
-old processed dataset.
+主流程从 `../data/raw` 读取原始Parquet格式行情，不使用旧项目中的处理后数据。
 
-For a chapter-by-chapter beginner explanation of the data, factors, labels,
-model, portfolio, backtest, metrics, and limitations, read
-[docs/beginner_project_walkthrough.md](docs/beginner_project_walkthrough.md).
+如需按章节学习数据、因子、标签、模型、组合、回测、指标和研究限制，请阅读
+[从零读懂这个量化项目](docs/beginner_project_walkthrough.md)。
 
-## Outputs
+## 输出文件
 
-- `reports/research_report.md`: concise research report and results.
-- `reports/equity_and_active_return.png`: test-period equity and active return.
-- `reports/factor_rank_ic.png`: factor Rank IC summary.
-- `reports/factor_quintile_returns.png`: factor bucket analysis.
-- `outputs/performance_summary.csv`: strategy metrics.
-- `outputs/factor_rank_ic_summary.csv`: factor evidence.
-- `outputs/trade_log.parquet`: every simulated order.
-- `outputs/rebalance_targets.parquet`: monthly signal and trade dates.
-- `outputs/research_panel.parquet`: features and forward labels.
+- `reports/research_report.md`：简洁的研究报告和结果。
+- `reports/equity_and_active_return.png`：测试期净值和主动收益。
+- `reports/factor_rank_ic.png`：因子RankIC汇总。
+- `reports/factor_quintile_returns.png`：因子五分组收益分析。
+- `outputs/performance_summary.csv`：策略绩效指标。
+- `outputs/factor_rank_ic_summary.csv`：因子证据。
+- `outputs/trade_log.parquet`：每一笔模拟交易。
+- `outputs/rebalance_targets.parquet`：每月信号日期和目标持仓。
+- `outputs/research_panel.parquet`：因子、未来标签和可交易状态。
 
-## Tests
+## 测试
 
-The tests cover the highest-risk timing assumptions:
+自动化测试重点检查最容易出错的时间逻辑：
 
-- labels begin at the next open and end after the stated horizon;
-- training and validation labels are purged at split boundaries;
-- portfolio trade dates are strictly after signal dates;
-- all target weights sum to the configured gross exposure;
-- the backtest creates no trades before the first target trade date.
+- 未来收益是否从下一交易日开盘开始；
+- 训练集和验证集标签是否在切分边界完成剔除；
+- 组合交易日是否严格晚于信号日期；
+- 目标持仓权重是否等于配置的总仓位；
+- 回测是否不会在首个目标交易日之前产生交易。
 
-## Data limitations
+## 数据限制
 
-The supplied raw dataset contains 287 current constituent files. It does not
-contain historical index membership or delisted stocks, so survivorship bias
-remains. The included benchmark is an equal-weight benchmark of the available
-universe, not a tradable CSI 300 index. Industry exposure, ST status, and exact
-exchange limit flags are also unavailable.
+现有原始数据包含287只当前成分股票的行情文件，不包含历史时点指数成分和已退市
+股票，因此仍存在幸存者偏差。当前基准是可用股票池的等权收益，不是可交易的沪深
+300指数。行业分类、ST状态和交易所精确涨跌停标志也暂时缺失。
 
-These limitations must stay visible when discussing results. A positive
-backtest is not evidence of a production-ready strategy without point-in-time
-membership and a tradable index benchmark.
+讨论回测结果时必须保留这些限制。在缺少历史时点成分股和可交易指数基准的情况下，
+正回测结果不能作为策略已经达到生产可用水平的证据。
 
-## Project layout
+## 项目结构
 
 ```text
-configs/                 research parameters
-src/quant_research/      data, factors, labels, model, portfolio, backtest
-scripts/run_pipeline.py  one-command pipeline
-tests/                   leakage and execution tests
-outputs/                 reproducible data and numerical outputs
-reports/                 report, charts, and presentation material
+configs/                 研究参数
+src/quant_research/      数据、因子、标签、模型、组合和回测
+scripts/run_pipeline.py  一键运行完整流程
+tests/                   防泄漏和交易执行测试
+outputs/                 可复现的数据和数值结果
+reports/                 报告、图表和简历材料
 ```
 

@@ -1,102 +1,94 @@
-# Beginner methodology guide
+# 量化项目方法讲解
 
-## 1. What the project predicts
+## 1. 项目预测什么
 
-The model predicts which stocks are likely to outperform the stock universe
-over the next month. It does not predict whether the overall market will rise.
+模型预测未来约一个月内，哪些股票可能跑赢同一股票池中的其他股票。它不预测整个
+市场接下来上涨还是下跌。
 
-At each date and for each stock, the pipeline builds:
-
-```text
-features observed through T close -> rank of future excess return after T+1
-```
-
-The cross-sectional target subtracts the same-date average future return. This
-makes the model focus on relative selection rather than market direction.
-
-## 2. Why `T` and `T+1` matter
-
-Closing prices are only known after the market closes. A signal using the T
-close cannot buy at that same close. The first realistic execution point is
-the next trading day's open.
-
-The supplied backtest therefore requires every order to satisfy:
+对每个交易日和每只股票，项目构造：
 
 ```text
-signal_date < trade_date
+T日收盘前可观察到的因子 → T+1日之后的未来超额收益排名
 ```
 
-A backtest that earns the return from T close to T+1 open from a T-close signal
-has look-ahead bias.
+横截面目标会减去同日股票池的平均未来收益，使模型重点学习相对选股能力，而不是
+市场整体涨跌方向。
 
-## 3. Why the data is split by date
+## 2. 为什么`T`和`T+1`非常重要
 
-Randomly splitting rows would place neighboring observations from the same
-stock and time window in both training and test data. A 20-day forward label
-also overlaps across neighboring dates.
+收盘价只有在市场收盘后才完全确定。使用T日收盘价计算的信号，不能在同一个T日
+收盘价成交。第一个现实可执行的交易时点是下一交易日的开盘。
 
-This project:
-
-1. trains on 2019-2021;
-2. removes training labels that extend into 2022;
-3. validates on 2022;
-4. removes validation labels that extend into 2023;
-5. treats 2023-2024 as the final test period.
-
-The `label_end_date` test is the practical guard against horizon leakage.
-
-## 4. What Rank IC means
-
-For each date:
+因此回测中的每一笔订单都必须满足：
 
 ```text
-Rank IC = Spearman correlation(factor rank, future-return rank)
+信号日期 < 交易日期
 ```
 
-Positive Rank IC means higher factor values tended to be followed by higher
-future returns. A stable positive IC is more useful than a high IC on one or
-two dates.
+如果T日收盘信号却获得了T日收盘至T+1日开盘之间的收益，回测就存在未来函数。
 
-The pipeline reports the mean, standard deviation, ICIR, positive ratio, and
-the number of valid days. It also plots average future excess returns by
-factor quintile.
+## 3. 为什么按日期切分数据
 
-## 5. Why a simple baseline is mandatory
+如果随机切分数据，同一只股票相邻日期的样本可能同时进入训练集和测试集。20日未来
+收益标签也会在相邻日期之间重叠。
 
-A complex model can look impressive because of leakage, transaction costs, or
-market exposure. The project therefore compares three layers:
+项目采用以下流程：
 
-1. the available stock universe;
-2. an equal-weight multi-factor score;
-3. a gradient-boosting challenger.
+1. 使用2019至2021年训练；
+2. 删除未来标签进入2022年的训练样本；
+3. 使用2022年验证；
+4. 删除未来标签进入2023年的验证样本；
+5. 使用2023至2024年作为最终测试期。
 
-The model is useful only if it adds evidence beyond the simple factor
-baseline. In the current run, the simple baseline is stronger out of sample;
-that is a valid research result, not something to hide.
+`label_end_date`字段用于检查并阻止未来标签跨越时间边界。
 
-## 6. What the backtest includes
+## 4. RankIC的含义
 
-- the portfolio is formed monthly;
-- orders use the next trading day's open;
-- share counts round to A-share board lots;
-- commissions have a minimum charge;
-- the sell-side stamp tax changes on 2023-08-28;
-- slippage is applied to both buys and sells;
-- purchases cannot exceed available cash;
-- trades cannot consume more than 5% of daily traded amount;
-- approximate exchange price limits block unavailable fills;
-- missing or suspended prices use the last available valuation price.
+每个交易日分别计算：
 
-## 7. How to read the final report
+```text
+RankIC = 因子排名与未来收益排名之间的Spearman相关系数
+```
 
-Start with the validation Rank IC, then the out-of-sample return and drawdown,
-and only then compare the return with the benchmark. Always inspect:
+RankIC为正，说明因子值较高的股票倾向于取得更高的未来收益排名。稳定为正比少数
+交易日出现很高的RankIC更有意义。
 
-- active return, not just absolute return;
-- turnover and explicit costs;
-- different calendar years;
-- the simple baseline;
-- the survivorship-bias limitation.
+项目会报告RankIC均值、标准差、ICIR、正IC比例和有效交易日数量，并绘制各因子
+五分组平均未来超额收益。
 
-The correct conclusion may be that the model does not beat the baseline. That
-is still a stronger interview project than an unexplained high return.
+## 5. 为什么必须保留简单基线
+
+复杂模型可能因为数据泄漏、交易成本或市场暴露而看起来很好。因此项目比较三个层次：
+
+1. 可用股票池；
+2. 多因子等权分数；
+3. 梯度提升模型。
+
+只有当梯度提升模型比简单因子基线提供额外证据时，复杂模型才有价值。当前运行中，
+简单基线在样本外的组合收益和回撤表现更好。这是有效的研究结果，不应隐藏。
+
+## 6. 回测包含什么
+
+- 组合按月构建和调仓；
+- 订单使用下一交易日开盘价；
+- 股数按A股100股交易单位取整；
+- 佣金设置最低收费；
+- 卖出印花税在2023年8月28日发生调整；
+- 买入和卖出都考虑滑点；
+- 买入金额不能超过可用现金；
+- 单笔交易不能超过当日成交额的5%；
+- 使用近似交易所涨跌停规则阻止不可成交订单；
+- 缺失或停牌价格使用最近可用估值价格。
+
+## 7. 如何阅读最终报告
+
+先看验证期RankIC，再看样本外收益和最大回撤，最后把策略与基准比较。必须同时检查：
+
+- 主动收益，而不仅是绝对收益；
+- 换手率和显性成本；
+- 不同自然年度的表现；
+- 简单因子基线；
+- 幸存者偏差等数据限制。
+
+正确结论可能是模型没有跑赢简单基线。一个解释清楚的研究失败，仍然比无法解释的高
+回测收益更适合作为面试项目。

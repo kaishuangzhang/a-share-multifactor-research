@@ -7,15 +7,24 @@ import pandas as pd
 
 
 FACTOR_DEFINITIONS = {
-    "momentum_20d": "Past 20-trading-day return.",
-    "momentum_60d": "Past 60-trading-day return.",
-    "reversal_5d": "Negative past 5-trading-day return.",
-    "low_volatility_20d": "Negative rolling 20-day standard deviation of daily returns.",
-    "low_turnover_20d": "Negative rolling 20-day mean turnover.",
-    "low_liquidity_20d": "Negative log rolling 20-day mean traded amount.",
+    "momentum_20d": "过去20个交易日收益率。",
+    "momentum_60d": "过去60个交易日收益率。",
+    "reversal_5d": "过去5个交易日收益率的相反数。",
+    "low_volatility_20d": "20日收益率滚动标准差的相反数。",
+    "low_turnover_20d": "20日平均换手率的相反数。",
+    "low_liquidity_20d": "20日平均成交额取对数后的相反数。",
 }
 
 FACTOR_COLUMNS = list(FACTOR_DEFINITIONS)
+
+FACTOR_LABELS = {
+    "momentum_20d": "20日动量",
+    "momentum_60d": "60日动量",
+    "reversal_5d": "5日反转",
+    "low_volatility_20d": "20日低波动",
+    "low_turnover_20d": "20日低换手",
+    "low_liquidity_20d": "20日低流动性",
+}
 
 
 def compute_features(panel: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
